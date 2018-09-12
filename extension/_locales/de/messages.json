@@ -1,0 +1,21 @@
+{
+  "extensionDescription": {
+    "message": "Ermöglicht die Gruppierung von Tabs ähnlich den entfernten Panorama-Funktionen"
+  },
+
+  "optionsEnableAlphabeticSortLabel": {
+    "message": "Alphabetische Sortierung"
+  },
+
+  "popupAddGroup": {
+    "message": "Neue Gruppe anlegen"
+  },
+
+  "popupTitle": {
+    "message": "Tabs gruppieren"
+  },
+
+  "popupUnnamedGroup": {
+    "message": "Unbenannte Gruppe"
+  }
+}

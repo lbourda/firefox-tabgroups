@@ -1,0 +1,41 @@
+{
+  "extensionDescription": {
+    "message": "Provides tab grouping features similar to the removed TabView/TabGroups/Panorama features."
+  },
+
+  "optionsEnableAlphabeticSortLabel": {
+    "message": "Enable Alphabetic Sorting"
+  },
+
+  "optionsGroupUndoCloseTimeoutLabel": {
+    "message": "Closing Group Delay"
+  },
+
+  "optionsOpenShortcutLabel": {
+    "message": "Use a Shortcut to Open the Popup"
+  },
+
+  "optionsNavigateShortcutsLabel": {
+    "message": "Use Shortcuts to Navigate to Previous/Next groups"
+  },
+
+  "optionsGoToPreviousGroupTooltip": {
+    "message": "Previous"
+  },
+
+  "optionsGoToNextGroupTooltip": {
+    "message": "Next"
+  },
+
+  "popupAddGroup": {
+    "message": "Create New Group"
+  },
+
+  "popupTitle": {
+    "message": "Group Tabs"
+  },
+
+  "popupUnnamedGroup": {
+    "message": "Unnamed Group"
+  }
+}

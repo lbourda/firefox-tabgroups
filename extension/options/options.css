@@ -1,0 +1,63 @@
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+}
+
+.grid-item {
+  padding: 3px;
+}
+
+hr {
+  border-color: lightgray;
+}
+
+input {
+  width: 60px;
+}
+
+.shortcut-input {
+  width: 100px;
+  margin-right: 2px;
+}
+
+.inlined-div {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+a {
+  padding-left: 3px;
+}
+
+/**
+ * Tooltip Styles
+ */
+
+/* Add this attribute to the element that needs a tooltip */
+[tooltip] {
+  position: relative;
+  z-index: 2;
+}
+
+/* Hide the tooltip content by default */
+[tooltip]:after {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Position tooltip below the element */
+[tooltip]:after {
+  -moz-appearance: tooltip;
+  position: absolute;
+  top: 120%;
+  left: 30%;
+  content: attr(tooltip);
+}
+
+/* Show tooltip content on hover */
+[tooltip]:hover:after {
+  visibility: visible;
+  opacity: 1;
+}

@@ -1,0 +1,41 @@
+{
+  "extensionDescription": {
+    "message": "Fournit des fonctionalités de gestion des groupes d'onglets équivalentes à celles supprimées de TabView/TabGroups/Panorama."
+  },
+  
+  "optionsEnableAlphabeticSortLabel": {
+    "message": "Tri alphabétique"
+  },
+
+  "optionsGroupUndoCloseTimeoutLabel": {
+    "message": "Délai avant fermeture du groupe"
+  },
+
+  "optionsOpenShortcutLabel": {
+    "message": "Utiliser un raccourci pour ouvrir le Popup"
+  },
+
+  "optionsNavigateShortcutsLabel": {
+    "message": "Utiliser des raccourcis pour aller sur les groupes précédent/suivant"
+  },
+
+  "optionsGoToPreviousGroupTooltip": {
+    "message": "Précédent"
+  },
+
+  "optionsGoToNextGroupTooltip": {
+    "message": "Suivant"
+  },
+
+  "popupAddGroup": {
+    "message": "Ajouter un groupe"
+  },
+
+  "popupTitle": {
+    "message": "Groupes d'onglets"
+  },
+
+  "popupUnnamedGroup": {
+    "message": "Groupe sans nom"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "presets": [
+    ["env", {
+        "targets": {
+            "firefox": 61
+        }
+    }],
+    "react"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "extensionDescription": {
+    "message": "Provee la funcionalidad de gestionar grupos de pestañas similar a la funcionalidad removida de TabView/TabGroups/Panorama."
+  },
+
+  "optionsEnableAlphabeticSortLabel": {
+    "message": "Habilitar orden alfabético"
+  },
+
+  "optionsGroupUndoCloseTimeoutLabel": {
+    "message": "Retardo al cerrar un grupo"
+  },
+
+  "popupAddGroup": {
+    "message": "Crear nuevo grupo"
+  },
+
+  "popupTitle": {
+    "message": "Grupos de Pestañas"
+  },
+
+  "popupUnnamedGroup": {
+    "message": "Grupo sin nombre"
+  }
+}

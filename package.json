@@ -1,10 +1,28 @@
 {
-  "name": "tabgroups",
+  "name": "simplified-tab-groups",
+  "version": "0.7.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack -w --display-error-details --progress --colors",
+    "start": "web-ext run -s extension/"
+  },
   "author": "",
-  "license": "MIT",
-  "private": true,
+  "license": "MPL-2.0",
   "devDependencies": {
-    "jake": "^8.0.12",
-    "jpm": "^1.0.3"
+    "babel-core": "6.26.0",
+    "babel-loader": "7.1.2",
+    "babel-preset-env": "1.6.1",
+    "babel-preset-react": "6.24.1",
+    "babel-preset-stage-2": "6.24.1",
+    "classnames": "2.2.5",
+    "create-react-class": "15.6.3",
+    "immutable": "3.8.2",
+    "react": "16.2.0",
+    "react-dom": "16.2.0",
+    "react-redux": "5.0.7",
+    "redux": "4.0.0",
+    "web-ext": "2.3.2",
+    "webpack": "3.10.0"
   }
 }

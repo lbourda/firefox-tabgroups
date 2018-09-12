@@ -1,0 +1,21 @@
+{
+  "optionsEnableAlphabeticSortLabel": {
+    "message": "Alfabetische sortering activeren"
+  },
+
+  "optionsGroupUndoCloseTimeoutLabel": {
+    "message": "Vertraging op sluiten van groepen"
+  },
+
+  "popupAddGroup": {
+    "message": "Nieuwe groep toevoegen"
+  },
+
+  "popupTitle": {
+    "message": "Tabbladen groeperen"
+  },
+
+  "popupUnnamedGroup": {
+    "message": "Niet-benoemde groep"
+  }
+}

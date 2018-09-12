@@ -1,32 +1,20 @@
-const {Cc, Ci} = require("chrome");
-const TabsUtils = require("sdk/tabs/utils");
-
 function SessionStorage() {
-  this._store = Cc["@mozilla.org/browser/sessionstore;1"]
-    .getService(Ci.nsISessionStore);
 }
 
-/**
- * Note: This is an implementation of the existing Panorama storage using
- * SessionStore so we are able to reuse the existing groups.
- *
- * This will eventually get replaced by the SDKs simple-storage or something
- * similar.
- */
 SessionStorage.prototype = {
   /**
    * Returns an array of available groups.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Array}
    */
-  getGroups: function(chromeWindow) {
-    let groupsData = this._getGroupsData(chromeWindow);
-    let currentGroup = this._getCurrentGroupData(chromeWindow);
+  getGroups: async function(activeInfo) {
+    let groupsData = await this._getGroupsData(activeInfo);
+    let currentGroup = await this._getCurrentGroupData(activeInfo);
 
     if (Object.keys(groupsData).length == 0) {
-      this.addGroup(chromeWindow);
-      groupsData = this._getGroupsData(chromeWindow);
+      await this.addGroup(activeInfo);
+      groupsData = await this._getGroupsData(activeInfo);
     }
 
     let groups = [];
@@ -47,36 +35,34 @@ SessionStorage.prototype = {
   /**
    * Returns all tabs.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Array}
    */
-  getTabs: function(chromeWindow) {
-    let browser = TabsUtils.getTabBrowser(chromeWindow);
+  getTabs: async function(activeInfo) {
     let tabs = [];
-    let currentGroup = this.getCurrentGroup(chromeWindow);
 
-    for (let tabIndex = 0; tabIndex < browser.tabs.length; tabIndex++) {
-      let tab = browser.tabs[tabIndex];
-      let tabData = this._getTabData(tab);
-      let tabState = this._getTabState(tab);
+    let currentGroupID = await this.getCurrentGroupID(activeInfo);
+    const tabs_ = await browser.tabs.query({windowId: activeInfo.windowId});
+    for (let tab of tabs_) {
+      let tabData = await this._getTabData(tab);
 
-      if (tabState.pinned) {
+      if (tab.pinned) {
         continue;
       }
 
-      let group = currentGroup;
+      let groupID = currentGroupID;
       if (tabData && tabData.groupID) {
-        group = tabData.groupID;
+        groupID = tabData.groupID;
       } else {
-        this.setTabGroup(tab, group);
+        await this.setTabGroup(tab, groupID);
       }
 
       tabs.push({
-        active: tab.selected,
-        group: group,
-        icon: browser.getIcon(tab),
-        index: tabIndex,
-        title: tab.label
+        active: tab.active,
+        group: groupID,
+        icon: tab.favIconUrl,
+        index: tab.index,
+        title: tab.title
       });
     }
 
@@ -84,56 +70,82 @@ SessionStorage.prototype = {
   },
 
   /**
-   * Returns all tab indexes in the specified group.
+   * Returns all tab ids in the specified group.
    *
-   * @param {TabBrowser} tabBrowser
    * @param {Number} groupID
    * @returns {Array}
    */
-  getTabIndexesByGroup: function(tabBrowser, targetGroupId) {
-    let tabs = [];
+  getTabIdsByGroup: async function(targetGroupID) {
+    let tabids = [];
 
-    for (let tabIndex = 0; tabIndex < tabBrowser.tabs.length; tabIndex++) {
-      let tab = tabBrowser.tabs[tabIndex];
-      let tabData = this._getTabData(tab);
-      let tabState = this._getTabState(tab);
+    const tabs_ = await browser.tabs.query({});
+    for (let tab of tabs_) {
+      let tabData = await this._getTabData(tab);
 
       let group = 0;
       if (tabData && tabData.groupID) {
         group = tabData.groupID;
       }
 
-      if (tabState.pinned || group != targetGroupId) {
+      if (tab.pinned || group != targetGroupID) {
         continue;
       }
 
-      tabs.push(tabIndex);
+      tabids.push(tab.id);
     }
 
-    return tabs;
+    return tabids;
+  },
+
+  /**
+   * Returns all tab ids in groups other than the one specified.
+   *
+   * @param {Number} groupID
+   * @returns {Array}
+   */
+  getTabIdsByOtherGroups: async function(targetGroupID) {
+    let tabids = [];
+
+    const tabs_ = await browser.tabs.query({});
+    for (let tab of tabs_) {
+      let tabData = await this._getTabData(tab);
+
+      let group = 0;
+      if (tabData && tabData.groupID) {
+        group = tabData.groupID;
+      }
+
+      if (tab.pinned || group == targetGroupID) {
+        continue;
+      }
+
+      tabids.push(tab.id);
+    }
+
+    return tabids;
   },
 
   /**
    * Returns the ID of the current group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Number}
    */
-  getCurrentGroup: function(chromeWindow) {
-    let groupData = this._getCurrentGroupData(chromeWindow);
+  getCurrentGroupID: async function(activeInfo) {
+    let groupData = await this._getCurrentGroupData(activeInfo);
     return groupData.activeGroupId || 0;
   },
 
   /**
    * Returns the ID of the current group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID
    */
-  setCurrentGroup: function(chromeWindow, groupID) {
-    let groupData = this._getCurrentGroupData(chromeWindow);
+  setCurrentGroup: async function(activeInfo, groupID) {
+    let groupData = await this._getCurrentGroupData(activeInfo);
     groupData.activeGroupId = groupID;
-    this._setCurrentGroupData(chromeWindow, groupData);
+    await this._setCurrentGroupData(activeInfo, groupData);
   },
 
   /**
@@ -142,109 +154,110 @@ SessionStorage.prototype = {
    * @param {XULElement} tab
    * @param {Number} groupID
    */
-  setTabGroup: function(tab, groupID) {
-    this._setTabData(
+  setTabGroup: async function(tab, groupID) {
+    await this._setTabData(
       tab,
-      Object.assign({}, this._getTabData(tab), {groupID})
+      Object.assign({}, await this._getTabData(tab), {groupID})
     );
   },
 
   /**
    * Returns the next possible GroupID.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Number}
    */
-  getNextGroupID: function(chromeWindow) {
-    let groupData = this._getCurrentGroupData(chromeWindow);
+  getNextGroupID: async function(activeInfo) {
+    let groupData = await this._getCurrentGroupData(activeInfo);
     let id = groupData.nextID;
     groupData.nextID++;
-    this._setCurrentGroupData(chromeWindow, groupData);
+    await this._setCurrentGroupData(activeInfo, groupData);
     return id;
   },
 
   /**
    * Creates a new tab group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {String} title - defaults to an empty string
    */
-  addGroup: function(chromeWindow, title = "") {
-    let groups = this._getGroupsData(chromeWindow);
-    let groupID = this.getNextGroupID(chromeWindow);
+  addGroup: async function(activeInfo, title = "") {
+    let groups = await this._getGroupsData(activeInfo);
+    let groupID = await this.getNextGroupID(activeInfo);
     groups[groupID] = {
       id: groupID,
       title: title,
       selectedIndex: 0
     };
 
-    let currentGroups = this._getCurrentGroupData(chromeWindow);
+    let currentGroups = await this._getCurrentGroupData(activeInfo);
     currentGroups.totalNumber++;
 
-    this._setGroupsData(chromeWindow, groups);
-    this._setCurrentGroupData(chromeWindow, currentGroups);
+    await this._setGroupsData(activeInfo, groups);
+    await this._setCurrentGroupData(activeInfo, currentGroups);
   },
 
   /**
    * Removes tabs from a specified group.
    *
-   * @param {TabBrowser} tabBrowser
    * @param {Number} groupID
    */
-  removeGroupTabs: function(tabBrowser, groupID) {
+  removeGroupTabs: async function(groupID) {
     let tabsToRemove = [];
-    for (let tabIndex = 0; tabIndex < tabBrowser.tabs.length; tabIndex++) {
-      let tab = tabBrowser.tabs[tabIndex];
-      let tabData = this._getTabData(tab);
+
+    const tabs_ = await browser.tabs.query({});
+    for (let tab of tabs_) {
+      let tabData = await this._getTabData(tab);
 
       if (tabData && tabData.groupID && tabData.groupID == groupID) {
-        tabsToRemove.push(tab);
+        tabsToRemove.push(tab.id);
       }
     }
 
-    tabsToRemove.forEach((tab) => {
-      tabBrowser.removeTab(tab);
-    });
+    for (let tab of tabsToRemove) {
+      _removeTabData(tab);
+    }
+    await browser.tabs.remove(tabsToRemove);
   },
 
   /**
    * Removes a tab group from the storage.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID
    */
-  removeGroup: function(chromeWindow, groupID) {
-    let groups = this._getGroupsData(chromeWindow);
+  removeGroup: async function(activeInfo, groupID) {
+    let groups = await this._getGroupsData(activeInfo);
     delete groups[groupID];
 
-    let currentGroups = this._getCurrentGroupData(chromeWindow);
+    let currentGroups = await this._getCurrentGroupData(activeInfo);
     currentGroups.totalNumber -= 1;
 
-    this._setGroupsData(chromeWindow, groups);
-    this._setCurrentGroupData(chromeWindow, currentGroups);
+    await this._setGroupsData(activeInfo, groups);
+    await this._setCurrentGroupData(activeInfo, currentGroups);
   },
 
   /**
    * Renames a group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    * @param {String} title - the new title
    */
-  renameGroup: function(chromeWindow, groupID, title) {
-    let groupsData = this._getGroupsData(chromeWindow);
+  renameGroup: async function(activeInfo, groupID, title) {
+    let groupsData = await this._getGroupsData(activeInfo);
     groupsData[groupID].title = title;
-    this._setGroupsData(chromeWindow, groupsData);
+    await this._setGroupsData(activeInfo, groupsData);
   },
 
   /**
    * Get the selected tab index for a group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    */
-  getGroupSelectedIndex: function(chromeWindow, groupID) {
-    let groupsData = this._getGroupsData(chromeWindow);
+  getGroupSelectedIndex: async function(activeInfo, groupID) {
+    let groupsData = await this._getGroupsData(activeInfo);
     let currentGroup = groupsData[groupID];
     return currentGroup == null ? 0 : currentGroup.selectedIndex;
   },
@@ -252,16 +265,16 @@ SessionStorage.prototype = {
   /**
    * Set the selected tab index for a group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    * @param {Number} index - the new selected index
    */
-  setGroupSelectedIndex: function(chromeWindow, groupID, index) {
-    let groupsData = this._getGroupsData(chromeWindow);
+  setGroupSelectedIndex: async function(activeInfo, groupID, index) {
+    let groupsData = await this._getGroupsData(activeInfo);
     let currentGroup = groupsData[groupID];
-    if (currentGroup != null) {
+    if (currentGroup) {
       currentGroup.selectedIndex = index;
-      this._setGroupsData(chromeWindow, groupsData);
+      await this._setGroupsData(activeInfo, groupsData);
     }
   },
 
@@ -271,9 +284,9 @@ SessionStorage.prototype = {
    * @param {XULElement} tab
    * @returns {Object}
    */
-  _getTabData: function(tab) {
+  _getTabData: async function(tab) {
     return this._parseOptionalJson(
-      this._store.getTabValue(tab, "tabview-tab")
+      await browser.sessions.getTabValue(tab.id, "tabview-tab")
     );
   },
 
@@ -284,65 +297,53 @@ SessionStorage.prototype = {
    * @param {Object} data
    * @returns {Object}
    */
-  _setTabData: function(tab, data) {
-    this._stopTabView(tab.ownerDocument.defaultView);
-    this._store.setTabValue(
-      tab,
-      "tabview-tab",
-      JSON.stringify(data)
-    );
+  _setTabData: async function(tab, data) {
+    await browser.sessions.setTabValue(tab.id, "tabview-tab", JSON.stringify(data));
   },
 
   /**
-   * Returns the data for the current tab state.
+   * Removes the data for a tab.
    *
    * @param {XULElement} tab
+   * @param {Object} data
    * @returns {Object}
    */
-  _getTabState: function(tab) {
-    return this._parseOptionalJson(
-      this._store.getTabState(tab)
-    );
+  _removeTabData: async function(tab) {
+    await browser.sessions.removeTabValue(tab.id, "tabview-tab");
   },
-
   /**
    * Returns all tab groups with additional information.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Object}
    */
-  _getGroupsData: function(chromeWindow) {
+  _getGroupsData: async function(activeInfo) {
     return this._parseOptionalJson(
-      this._store.getWindowValue(chromeWindow, "tabview-group")
+      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-group")
     );
   },
 
   /**
    * Set group information for the given window.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Object} data
    * @returns {Object}
    */
-  _setGroupsData: function(chromeWindow, data) {
-    this._stopTabView(chromeWindow);
-    this._store.setWindowValue(
-      chromeWindow,
-      "tabview-group",
-      JSON.stringify(data)
-    );
+  _setGroupsData: async function(activeInfo, data) {
+    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-group", JSON.stringify(data));
   },
 
   /**
    * Returns the current group as well as the next group ID and the total
    * number of groups.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Object}
    */
-  _getCurrentGroupData: function(chromeWindow) {
+  _getCurrentGroupData: async function(activeInfo) {
     let data = this._parseOptionalJson(
-      this._store.getWindowValue(chromeWindow, "tabview-groups")
+      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-groups")
     );
 
     if (Object.keys(data).length == 0) {
@@ -359,31 +360,12 @@ SessionStorage.prototype = {
   /**
    * Stores information about the current session.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Object} data
    * @returns {Object}
    */
-  _setCurrentGroupData: function(chromeWindow, data) {
-    this._stopTabView(chromeWindow);
-    this._store.setWindowValue(
-      chromeWindow,
-      "tabview-groups",
-      JSON.stringify(data)
-    );
-  },
-
-  /**
-   * Deinitializes the TabView frame from the Tab Groups add-on, so that it
-   * reconstructs any changed data by us properly when it is accessed again.
-   * The _deinitFrame method only exists with that add-on enabled, and it
-   * will no-op if the frame isn't already initialized.
-   *
-   * @param {ChromeWindow} chromeWindow
-   */
-  _stopTabView: function(chromeWindow) {
-    if (chromeWindow.TabView && chromeWindow.TabView._deinitFrame) {
-      chromeWindow.TabView._deinitFrame();
-    }
+  _setCurrentGroupData: async function(activeInfo, data) {
+    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-groups", JSON.stringify(data));
   },
 
   /**
@@ -404,4 +386,4 @@ SessionStorage.prototype = {
   }
 };
 
-exports.SessionStorage = SessionStorage;
+export { SessionStorage as default };

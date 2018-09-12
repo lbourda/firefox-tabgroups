@@ -1,3 +1,7 @@
+# 0.7.0
+
+Port to WebExtensions
+
 # 0.6.0
 
 ## Features

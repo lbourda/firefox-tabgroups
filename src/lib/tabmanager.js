@@ -1,4 +1,3 @@
-const TabsUtils = require("sdk/tabs/utils");
 
 function TabManager(storage) {
   this._storage = storage;
@@ -8,12 +7,12 @@ TabManager.prototype = {
   /**
    * Returns all groups with their tabs.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @returns {Object}
    */
-  getGroupsWithTabs: function(chromeWindow, sort) {
-    let groups = this._storage.getGroups(chromeWindow);
-    let tabs = this._storage.getTabs(chromeWindow);
+  getGroupsWithTabs: async function(activeInfo, sort) {
+    let groups = await this._storage.getGroups(activeInfo);
+    let tabs = await this._storage.getTabs(activeInfo);
 
     let retGroups = groups.map((group) => {
       return Object.assign({}, group, {
@@ -25,6 +24,16 @@ TabManager.prototype = {
 
     if (sort) {
       retGroups.sort((a, b) => {
+        // Unnamed groups
+        if (a.title == "" && b.title == "") {
+          return a.id - b.id;
+        } else if (a.title == "") {
+          return 1;
+        } else if (b.title == "") {
+          return -1;
+        }
+
+        // Normal cases
         if (a.title.toLowerCase() == b.title.toLowerCase()) {
           return 0;
         }
@@ -39,93 +48,94 @@ TabManager.prototype = {
   /**
    * Selects a given tab.
    *
-   * @param {ChromeWindow} chromeWindow
-   * @param {TabBrowser} tabBrowser
+   * @param {ActiveInfo} activeInfo
    * @param {Number} index - the tabs index
    * @param {Number} groupID - the tabs groupID
    */
-  selectTab: function(chromeWindow, tabBrowser, index, groupID) {
-    let currentGroup = this._storage.getCurrentGroup(chromeWindow);
+  selectTab: async function(activeInfo, index, groupID) {
+    let currentGroupId = await this._storage.getCurrentGroupID(activeInfo);
 
-    if (currentGroup == groupID) {
-      tabBrowser.selectedTab = tabBrowser.tabs[index];
+    if (currentGroupId == groupID) {
+      let tab = (await browser.tabs.query({index: index}))[0];
+      await browser.tabs.update(tab.id, {active: true});
     } else {
-      this.selectGroup(chromeWindow, tabBrowser, groupID, index);
+      await this.selectGroup(activeInfo, groupID, index);
     }
   },
 
   /**
    * Move tab beetwen groups
    *
-   * @param {ChromeWindow} chromeWindow
-   * @param {TabBrowser} tabBrowser
+   * @param {ActiveInfo} activeInfo
    * @param {Number} tabIndex - the tabs index
    * @param {Number} targetGroupID - target groupID (where to move tab)
    */
-  moveTabToGroup: function(chromeWindow, tabBrowser, tabIndex, targetGroupID) {
-    let tab = tabBrowser.tabs[tabIndex];
-    if (tab.groupID === targetGroupID) {
+  moveTabToGroup: async function(activeInfo, tabIndex_, targetGroupID) {
+    let tabIndex = (typeof tabIndex_ == "string") ? parseInt(tabIndex_) : tabIndex_;
+    let tab = (await browser.tabs.query({index: tabIndex}))[0];
+    if (tab.groupID == targetGroupID) {
       return;
     }
-    this._storage.setTabGroup(tab, targetGroupID);
+    await this._storage.setTabGroup(tab, targetGroupID);
     if (tab.selected) {
-      this.selectGroup(chromeWindow, tabBrowser, targetGroupID);
+      await this.selectGroup(activeInfo, targetGroupID);
     }
   },
 
   /**
    * Selects a given group.
    *
-   * @param {ChromeWindow} chromeWindow
-   * @param {TabBrowser} tabBrowser
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    * @param {Number} tabIndex - the tab to activate
    */
-  selectGroup: function(chromeWindow, tabBrowser, groupID, tabIndex = 0) {
-    let currentGroup = this._storage.getCurrentGroup(chromeWindow);
-    if (currentGroup == groupID) {
+  selectGroup: async function(activeInfo, groupID, tabIndex = 0) {
+    let currentGroupID = await this._storage.getCurrentGroupID(activeInfo);
+    if (currentGroupID == groupID) {
       return;
     }
 
-    this.updateCurrentSelectedTab(chromeWindow);
+    await this.updateCurrentSelectedTab(activeInfo);
 
-    let lastSelected = this._storage.getGroupSelectedIndex(chromeWindow, groupID);
-    let tabs = this._storage.getTabIndexesByGroup(tabBrowser, groupID);
+    let lastSelected = await this._storage.getGroupSelectedIndex(activeInfo, groupID);
+    let tabids = await this._storage.getTabIdsByGroup(groupID);
+    let tabidsothers = await this._storage.getTabIdsByOtherGroups(groupID);
 
     let selectedTab;
-    if (tabs.length == 0) {
-      selectedTab = tabBrowser.addTab("about:newtab");
-      this._storage.setTabGroup(selectedTab, groupID);
-      tabs.push(selectedTab);
+    if (tabids.length == 0) {
+      selectedTab = await browser.tabs.create({active: true}); // defaults to about:newtab
+      await this._storage.setTabGroup(selectedTab, groupID);
+      tabids.push(selectedTab.id);
     } else if (tabIndex) {
-      selectedTab = tabBrowser.tabs[tabIndex];
+      let index = tabIndex < tabids.length ? tabIndex : 0;
+      selectedTab = await browser.tabs.get(tabids[index]);
     } else {
-      selectedTab = tabBrowser.tabs[lastSelected < tabs.length ? tabs[lastSelected] : tabs[0]];
+      let index = lastSelected < tabids.length ? lastSelected : 0;
+      selectedTab = await browser.tabs.get(tabids[index]);
     }
 
-    this._storage.setCurrentGroup(chromeWindow, groupID);
-    tabBrowser.selectedTab = selectedTab;
+    await this._storage.setCurrentGroup(activeInfo, groupID);
+    await browser.tabs.update(selectedTab.id, {active: true});
 
-    tabBrowser.showOnlyTheseTabs(tabs.map((tab) => {
-      return tabBrowser.tabs[tab];
-    }));
+    await browser.tabs.show(tabids);
+    await browser.tabs.hide(tabidsothers);
   },
 
   /**
    * Selects the next or previous group in the list
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} direction
    */
-  selectNextPrevGroup: function(chromeWindow, tabBrowser, direction) {
-    let currentGroup = this._storage.getCurrentGroup(chromeWindow);
-    let groups = this._storage.getGroups(chromeWindow);
+  selectNextPrevGroup: async function(activeInfo, direction) {
+    let currentGroupID = await this._storage.getCurrentGroupID(activeInfo);
+    let groups = await this._storage.getGroups(activeInfo);
     if (groups.length == 0) {
       return;
     }
 
     let index = groups.findIndex((group) => {
-      return group.id == currentGroup;
+      return group.id == currentGroupID;
     });
 
     if (index == -1) {
@@ -133,16 +143,16 @@ TabManager.prototype = {
     }
 
     index = (index + direction + groups.length) % groups.length;
-    this.selectGroup(chromeWindow, tabBrowser, groups[index].id);
+    await this.selectGroup(activeInfo, groups[index].id);
   },
 
   /**
    * Updates the currently selected index for the given window
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    */
-  updateCurrentSelectedTab: function(chromeWindow) {
-    let tabs = this._storage.getTabs(chromeWindow);
+  updateCurrentSelectedTab: async function(activeInfo) {
+    let tabs = await this._storage.getTabs(activeInfo);
     let curtab = tabs.find((tab) => {
       return tab.active;
     });
@@ -152,25 +162,25 @@ TabManager.prototype = {
         return tab.group == curtab.group;
       }).indexOf(curtab);
 
-      this._storage.setGroupSelectedIndex(chromeWindow, curtab.group, curindex);
+      await this._storage.setGroupSelectedIndex(activeInfo, curtab.group, curindex);
     }
   },
 
   /**
    * Updates the currently selected group based on the active tab
    *
-   * @param {ChromwWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    */
-  updateCurrentSelectedGroup: function(chromeWindow) {
-    let tabs = this._storage.getTabs(chromeWindow);
+  updateCurrentSelectedGroup: async function(activeInfo) {
+    let tabs = await this._storage.getTabs(activeInfo);
     let curtab = tabs.find((tab) => {
       return tab.active;
     });
 
     if (curtab) {
-      let currentGroupID = this._storage.getCurrentGroup(chromeWindow);
+      let currentGroupID = await this._storage.getCurrentGroupID(activeInfo);
       if (currentGroupID && curtab.group !== currentGroupID) {
-        this.selectGroup(chromeWindow, TabsUtils.getTabBrowser(chromeWindow), curtab.group, tabs.indexOf(curtab));
+        await this.selectGroup(activeInfo, curtab.group, tabs.indexOf(curtab));
       }
     }
   },
@@ -178,36 +188,34 @@ TabManager.prototype = {
   /**
    * Renames a given group.
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    * @param {String} title - the new title
    */
-  renameGroup: function(chromeWindow, groupID, title) {
-    this._storage.renameGroup(chromeWindow, groupID, title);
+  renameGroup: async function(activeInfo, groupID, title) {
+    await this._storage.renameGroup(activeInfo, groupID, title);
   },
 
   /**
    * Adds a blank group
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    */
-  addGroup: function(chromeWindow) {
-    this._storage.addGroup(chromeWindow);
+  addGroup: async function(activeInfo) {
+    await this._storage.addGroup(activeInfo);
   },
 
   /**
    * Adds a group with associated tab
    *
-   * @param {ChromeWindow} chromeWindow
-   * @param {TabBrowser} tabBrowser
+   * @param {ActiveInfo} activeInfo
    * @param {Number} tabIndex - the tab to place into group
    */
-  addGroupWithTab: function(chromeWindow, tabBrowser, tabIndex) {
-    this._storage.addGroup(chromeWindow);
-    let group = this.getRecentlyAddedGroup(chromeWindow);
-    this.moveTabToGroup(
-      chromeWindow,
-      tabBrowser,
+  addGroupWithTab: async function(activeInfo, tabIndex) {
+    await this._storage.addGroup(activeInfo);
+    let group = await this.getRecentlyAddedGroup(activeInfo);
+    await this.moveTabToGroup(
+      activeInfo,
       tabIndex,
       group.id
     );
@@ -216,10 +224,10 @@ TabManager.prototype = {
   /**
    * Return recently added group
    *
-   * @param {ChromeWindow} chromeWindow
+   * @param {ActiveInfo} activeInfo
    */
-  getRecentlyAddedGroup: function(chromeWindow) {
-    let currentGoups = this._storage.getGroups(chromeWindow);
+  getRecentlyAddedGroup: async function(activeInfo) {
+    let currentGoups = await this._storage.getGroups(activeInfo);
     let recentlyAddedGroup = null;
     if (currentGoups.length > 0) {
       recentlyAddedGroup = currentGoups[currentGoups.length - 1];
@@ -230,19 +238,20 @@ TabManager.prototype = {
   /**
    * Closes a group and all attached tabs
    *
+   * @param {ActiveInfo} activeInfo
    * @param {Number} groupID - the groupID
    */
-  closeGroup: function(chromeWindow, tabBrowser, groupID) {
-    this._storage.removeGroup(chromeWindow, groupID);
+  closeGroup: async function(activeInfo, groupID) {
+    await this._storage.removeGroup(activeInfo, groupID);
 
-    let currentGroup = this._storage.getCurrentGroup(chromeWindow);
-    if (currentGroup == groupID) {
-      let remainingGroups = this._storage.getGroups(chromeWindow);
-      this.selectGroup(chromeWindow, tabBrowser, remainingGroups[0].id);
+    let currentGroupID = await this._storage.getCurrentGroupID(activeInfo);
+    if (currentGroupID == groupID) {
+      let remainingGroups = await this._storage.getGroups(activeInfo);
+      await this.selectGroup(activeInfo, remainingGroups[0].id);
     }
 
-    this._storage.removeGroupTabs(tabBrowser, groupID);
+    await this._storage.removeGroupTabs(groupID);
   }
 };
 
-exports.TabManager = TabManager;
+export { TabManager as default };
