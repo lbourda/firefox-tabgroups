@@ -1,5 +1,6 @@
-NOTE: Icons were imported from Firefox as the original TabView was
-removed and those icons are no longer needed.
+NOTE: defaultFavicon.svg and extensionGeneric-16.svg files were imported
+from Firefox because access to chrome urls is not provided.
+(cf https://bugzilla.mozilla.org/show_bug.cgi?id=1462948)
 
 --------------------------------------------------------------------------------
 

@@ -13,25 +13,23 @@
   },
 
   "icons": {
-    "32": "icons/extension-32.png",
-    "48": "icons/extension-48.png"
+    "16": "icons/icon-dark.svg",
+    "32": "icons/icon-dark.svg",
+    "48": "icons/icon-dark.svg"
   },
 
   "browser_action": {
     "browser_style": false,
-    "default_icon": {
-      "16": "icons/togglebutton/icon-16.png",
-      "32": "icons/togglebutton/icon-32.png"
-    },
+    "default_icon": "icons/icon-dark.svg",
     "default_title": "__MSG_popupTitle__",
     "default_popup": "popup/groupspanel.html",
     "theme_icons": [{
-      "light": "icons/togglebutton/icon-16.png",
-      "dark": "icons/togglebutton/icon-inverted-16.png",
+      "light": "icons/icon-light.svg",
+      "dark": "icons/icon-dark.svg",
       "size": 16
     }, {
-      "light": "icons/togglebutton/icon-32.png",
-      "dark": "icons/togglebutton/icon-inverted-32.png",
+      "light": "icons/icon-light.svg",
+      "dark": "icons/icon-dark.svg",
       "size": 32
     }]
   },
