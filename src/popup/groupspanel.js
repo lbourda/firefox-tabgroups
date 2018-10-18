@@ -8,46 +8,45 @@ import Reducer from "./reducer.js"
 
 const store = reduxCreateStore(Reducer);
 
-var portGroupsPanel = browser.runtime.connect({name: "groups-panel"});
-portGroupsPanel.postMessage({type: "UI:Refresh"});
+browser.runtime.sendMessage({command: "UI:Refresh"});
 
 import App from "./components/app.js"
 
 const Actions = {
   addGroup: function() {
-    portGroupsPanel.postMessage({type: "Group:Add"});
+    browser.runtime.sendMessage({command: "Group:Add"});
   },
 
   addGroupWithTab: function(sourceGroupID, tabIndex) {
-    portGroupsPanel.postMessage({type: "Group:AddWithTab", data: {sourceGroupID: sourceGroupID, tabIndex: tabIndex}});
+    browser.runtime.sendMessage({command: "Group:AddWithTab", data: {sourceGroupID: sourceGroupID, tabIndex: tabIndex}});
   },
 
   closeGroup: function(groupID) {
-    portGroupsPanel.postMessage({type: "Group:Close", data: {groupID: groupID}});
+    browser.runtime.sendMessage({command: "Group:Close", data: {groupID: groupID}});
   },
 
   renameGroup: function(groupID, title) {
-    portGroupsPanel.postMessage({type: "Group:Rename", data: {groupID: groupID, title: title}});
+    browser.runtime.sendMessage({command: "Group:Rename", data: {groupID: groupID, title: title}});
   },
 
   selectGroup: function(groupID) {
-    portGroupsPanel.postMessage({type: "Group:Select", data: {groupID}});
+    browser.runtime.sendMessage({command: "Group:Select", data: {groupID}});
   },
 
   moveTabToGroup: function(sourceGroupID, tabIndex, targetGroupID) {
-    portGroupsPanel.postMessage({type: "Group:Drop", data: {sourceGroupID: sourceGroupID, tabIndex: tabIndex, targetGroupID: targetGroupID}});
+    browser.runtime.sendMessage({command: "Group:Drop", data: {sourceGroupID: sourceGroupID, tabIndex: tabIndex, targetGroupID: targetGroupID}});
   },
 
   selectTab: function(groupID, tabIndex) {
-    portGroupsPanel.postMessage({type: "Tab:Select", data: {groupID: groupID, tabIndex: tabIndex}});
+    browser.runtime.sendMessage({command: "Tab:Select", data: {groupID: groupID, tabIndex: tabIndex}});
   },
 
   dragTab: function(groupID, tabIndex) {
-    portGroupsPanel.postMessage({type: "Tab:Drag", data: {groupID: groupID, tabIndex: tabIndex}});
+    browser.runtime.sendMessage({command: "Tab:Drag", data: {groupID: groupID, tabIndex: tabIndex}});
   },
 
   dragTabStart: function(groupID, tabIndex) {
-    portGroupsPanel.postMessage({type: "Tab:DragStart", data: {groupID: groupID, tabIndex: tabIndex}});
+    browser.runtime.sendMessage({command: "Tab:DragStart", data: {groupID: groupID, tabIndex: tabIndex}});
   }
 };
 
@@ -72,13 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 });
 
-portGroupsPanel.onMessage.addListener((request, sender, senderMessage) => {
-  switch (request.type) {
+browser.runtime.onMessage.addListener((message) => {
+  switch (message.command) {
     case "Groups:Changed":
-      store.dispatch(ActionCreators.setTabgroups(request.data.tabgroups));
+      store.dispatch(ActionCreators.setTabgroups(message.data.tabgroups));
       break;
     case "Groups:CloseTimeoutChanged":
-      store.dispatch(ActionCreators.setGroupCloseTimeout(request.data.timeout));
+      store.dispatch(ActionCreators.setGroupCloseTimeout(message.data.timeout));
       break;
   };
 });

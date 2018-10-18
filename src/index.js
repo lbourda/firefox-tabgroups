@@ -1,7 +1,6 @@
 import SessionStorage from "./lib/storage/session.js";
 import TabManager from "./lib/tabmanager.js";
 
-var portFromGP;
 var _this;
 
 function TabGroups() {
@@ -54,36 +53,33 @@ TabGroups.prototype = {
   },
   
   bindPanelEvents: function() {
-    browser.runtime.onConnect.addListener((port) => {
-      portFromGP = port;
-      port.onMessage.addListener((request, sender, senderMessage) => {
-        switch (request.type) {
-          case "Group:Add":
-            this.onGroupAdd(request.data);
-            break;
-          case "Group:AddWithTab":
-            this.onGroupAddWithTab(request.data);
-            break;
-          case "Group:Close":
-            this.onGroupClose(request.data);
-            break;
-          case "Group:Rename":
-            this.onGroupRename(request.data);
-            break;
-          case "Group:Select":
-            this.onGroupSelect(request.data);
-            break;
-          case "Group:Drop":
-            this.onGroupDrop(request.data);
-            break;
-          case "Tab:Select":
-            this.onTabSelect(request.data);
-            break;
-          case 'UI:Refresh':
-            this.refreshUi();
-            break;
-        };
-      });
+    browser.runtime.onMessage.addListener((message) => {
+      switch (message.command) {
+        case "Group:Add":
+          this.onGroupAdd(message.data);
+          break;
+        case "Group:AddWithTab":
+          this.onGroupAddWithTab(message.data);
+          break;
+        case "Group:Close":
+          this.onGroupClose(message.data);
+          break;
+        case "Group:Rename":
+          this.onGroupRename(message.data);
+          break;
+        case "Group:Select":
+          this.onGroupSelect(message.data);
+          break;
+        case "Group:Drop":
+          this.onGroupDrop(message.data);
+          break;
+        case "Tab:Select":
+          this.onTabSelect(message.data);
+          break;
+        case "UI:Refresh":
+          this.refreshUi();
+          break;
+      };
     });
   },
 
@@ -113,9 +109,9 @@ TabGroups.prototype = {
     });
 
     let tabgroups = await this._tabs.getGroupsWithTabs(await this._getWindow(), storedItems.enableAlphabeticSort);
-    portFromGP.postMessage({type: "Groups:Changed", data: {tabgroups}});
+    browser.runtime.sendMessage({command: "Groups:Changed", data: {tabgroups}});
 
-    portFromGP.postMessage({type: "Groups:CloseTimeoutChanged", data: {timeout: storedItems.groupCloseTimeout}});
+    browser.runtime.sendMessage({command: "Groups:CloseTimeoutChanged", data: {timeout: storedItems.groupCloseTimeout}});
   },
 
   onGroupAdd: async function() {
