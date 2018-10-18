@@ -8,7 +8,7 @@
   "applications": {
     "gecko": {
       "id": "lbourda.git@gmail.com",
-      "strict_min_version": "61.0"
+      "strict_min_version": "63.0"
     }
   },
 
@@ -41,7 +41,7 @@
   },
 
   "commands": {
-    "_execute_browser_action": {
+    "open-popup": {
       "suggested_key": {
         "default": "Ctrl+Shift+E",
         "mac": "Command+Shift+E"

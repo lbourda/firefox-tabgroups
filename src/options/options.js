@@ -53,7 +53,7 @@ class Options extends React.Component {
     browser.storage.local.set({panoramaShortcut: value});
 
     browser.commands.update({
-      name: "_execute_browser_action",
+      name: "open-popup",
       shortcut: value
     });
   }
@@ -158,7 +158,7 @@ class Options extends React.Component {
             <label>{browser.i18n.getMessage("optionsOpenShortcutLabel")}</label>
           </div>
           <div className="grid-item grid-column2">
-            <input type="checkbox" id="bindPanoramaShortcut" disabled="true"
+            <input type="checkbox" id="bindPanoramaShortcut"
               checked={this.state.bindPanoramaShortcut}
               onChange={this.setBindPanoramaShortcut}
               />
