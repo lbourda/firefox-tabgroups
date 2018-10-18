@@ -64,7 +64,7 @@ TabManager.prototype = {
   },
 
   /**
-   * Move tab beetwen groups
+   * Move tab between groups
    *
    * @param {ActiveInfo} activeInfo
    * @param {Number} tabIndex - the tabs index
@@ -79,6 +79,8 @@ TabManager.prototype = {
     await this._storage.setTabGroup(tab, targetGroupID);
     if (tab.selected) {
       await this.selectGroup(activeInfo, targetGroupID);
+    } else {
+      await browser.tabs.hide(tab.id);
     }
   },
 

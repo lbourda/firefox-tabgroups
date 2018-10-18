@@ -214,9 +214,6 @@ SessionStorage.prototype = {
       }
     }
 
-    for (let tab of tabsToRemove) {
-      _removeTabData(tab);
-    }
     await browser.tabs.remove(tabsToRemove);
   },
 
@@ -286,7 +283,7 @@ SessionStorage.prototype = {
    */
   _getTabData: async function(tab) {
     return this._parseOptionalJson(
-      await browser.sessions.getTabValue(tab.id, "tabview-tab")
+      await browser.sessions.getTabValue(tab.id, "tabview-tab").catch((e) => {})
     );
   },
 
@@ -298,19 +295,9 @@ SessionStorage.prototype = {
    * @returns {Object}
    */
   _setTabData: async function(tab, data) {
-    await browser.sessions.setTabValue(tab.id, "tabview-tab", JSON.stringify(data));
+    await browser.sessions.setTabValue(tab.id, "tabview-tab", JSON.stringify(data)).catch((e) => {});
   },
 
-  /**
-   * Removes the data for a tab.
-   *
-   * @param {XULElement} tab
-   * @param {Object} data
-   * @returns {Object}
-   */
-  _removeTabData: async function(tab) {
-    await browser.sessions.removeTabValue(tab.id, "tabview-tab");
-  },
   /**
    * Returns all tab groups with additional information.
    *
@@ -319,7 +306,7 @@ SessionStorage.prototype = {
    */
   _getGroupsData: async function(activeInfo) {
     return this._parseOptionalJson(
-      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-group")
+      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-group").catch((e) => {})
     );
   },
 
@@ -331,7 +318,7 @@ SessionStorage.prototype = {
    * @returns {Object}
    */
   _setGroupsData: async function(activeInfo, data) {
-    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-group", JSON.stringify(data));
+    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-group", JSON.stringify(data)).catch((e) => {});
   },
 
   /**
@@ -343,7 +330,7 @@ SessionStorage.prototype = {
    */
   _getCurrentGroupData: async function(activeInfo) {
     let data = this._parseOptionalJson(
-      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-groups")
+      await browser.sessions.getWindowValue(activeInfo.windowId, "tabview-groups").catch((e) => {})
     );
 
     if (Object.keys(data).length == 0) {
@@ -365,7 +352,7 @@ SessionStorage.prototype = {
    * @returns {Object}
    */
   _setCurrentGroupData: async function(activeInfo, data) {
-    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-groups", JSON.stringify(data));
+    await browser.sessions.setWindowValue(activeInfo.windowId, "tabview-groups", JSON.stringify(data)).catch((e) => {});
   },
 
   /**
