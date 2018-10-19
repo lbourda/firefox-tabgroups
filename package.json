@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack -w --display-error-details --progress --colors",
+    "build-nowatch": "webpack --display-error-details --progress --colors",
     "start": "web-ext run -s extension/"
   },
   "author": "",
@@ -19,7 +20,7 @@
     "create-react-class": "15.6.3",
     "immutable": "3.8.2",
     "react": "16.2.0",
-    "react-dom": "16.2.0",
+    "react-dom": "16.2.1",
     "react-redux": "5.0.7",
     "redux": "4.0.0",
     "web-ext": "2.3.2",

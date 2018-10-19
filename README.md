@@ -1,10 +1,6 @@
 Simplified Tab Groups for Firefox
 =================================
 
-**NOTE**: This project is currently unmaintained. If someone wants to take over, [check this discussion](https://github.com/denschub/firefox-tabgroups/issues/60#issuecomment-388541616) and drop me a note.
-
----
-
 This project aims to provide a simple add-on to replace some functionalities
 from TabView/Tab Groups/Panorama which were removed from Firefox due to a lot
 of open bugs and a very low overall usage.
@@ -26,28 +22,32 @@ tabs...
 Building
 --------
 
-Assuming you have Node.js v5 installed on your machine, building this project
+Assuming you have Node.js installed on your machine, building this project
 is rather easy.
 
 1. Install the dependencies: `npm install`.
-2. Run `./node_modules/.bin/jake build` to build all source files into the
-   `dist/` directory or run `./node_modules/.bin/jake run` to build the add-on
-   and start a Firefox instance for testing.
+2. Run `npm run build-nowatch` to build all source files into the
+   `extension/dist` directory.
+   
+Alternatively you can run `npm run build` to start a continous build process
+to transpile the code into something that can run in Firefox.
+This creates a WebExtension in the `extension` subdirectory.
+Any time you edit a file, it will be rebuilt automatically.
 
-`jake run` uses `jpm` and you can pass additional parameters to it by setting
-an environment variable, for example: `JPM_PARAMS="-b nightly" jake run`
+In another shell window, run the extension in Firefox using a wrapper
+around web-ext: `npm start`.
+Any time you edit a file, [web-ext][web-ext] will reload the extension.
+
 
 Contributing
 ------------
 
 Feel free to [fix some open issues][issues] and submit a pull request. Please
 make sure to file the pull request against the `develop` branch, which should
-be the default. Please make sure your code passes the coding styleguides by
-running `jake lint` before submitting the PR.
+be the default.
 
 If you want to help translating this add-on, feel free to alter or add new
-files in `src/locale`. The extensions name and descriptions have to be changed
-in `src/install.rdf`.
+files in `extension/_locales`.
 
 License
 -------
@@ -56,3 +56,4 @@ MIT.
 
 [amo]: https://addons.mozilla.org/en-US/firefox/addon/tab-groups/
 [issues]: https://github.com/denschub/firefox-tabgroups/issues
+[web-ext]: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext

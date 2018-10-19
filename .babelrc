@@ -2,7 +2,7 @@
   "presets": [
     ["env", {
         "targets": {
-            "firefox": 61
+            "firefox": 63
         }
     }],
     "react"
